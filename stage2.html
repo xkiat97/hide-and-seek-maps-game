@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="images/favicon.png">
+    <link rel="stylesheet" href="css/app.css">
+    <title>Stage 2: Out of the Maze</title>
+
+    <style>
+        main {
+            display: flex;
+            flex-direction: row;
+        }
+
+        #panel {
+            width: 200px;
+            margin-right: 10px;
+        }
+
+        #map {
+            border: 2px solid #999;
+            flex: 1 1 auto;
+        }
+
+        #info {
+            width: 120px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1><a href="stage2.html">Stage 2: Out of the Maze</a></h1>
+    </header>
+
+    <!-- Vue ----------------------------------------------------------------->
+    <main id="app" v-cloak>
+        <div id="panel">
+            <hr>
+            <div>
+                <img :src="`images/1/${ maze || 'none' }.gif`" style="width:200px; height:200px;">
+            </div>
+            <hr>
+        </div>
+
+        <div id="map"></div>
+
+        <div hidden>
+            <div id="info">
+                <div>
+                    <p id="label" style="word-wrap: break-word;">Do you want to quit the game?</p>
+                </div>
+                <div>
+                    <button @click.prevent="yes">Yes</button>
+                    <button @click.prevent="no">No</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA6_FR24eJgBV5H-LPLMleoVG2d5wn0ut4"></script>
+    <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-database.js"></script>
+    <script src="js/jquery-3.4.1.slim.js"></script>
+    <script src="js/vue.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // Firebase -----------------------------------------------------------
+        firebase.initializeApp({
+            databaseURL: 'https://chuap1.firebaseio.com'
+        });
+
+        const ref = firebase.database().ref('map2');
+
+        // Vue ----------------------------------------------------------------
+        const vm = new Vue({
+            el: '#app',
+            data: {
+                rectangles: [],
+                maze: '',
+                ready: false
+            },
+            methods: {
+                no() {
+                    vm.move(0, 0);
+                    info.close();
+                },
+                yes() {
+                    alert("You will be redirect to main page.");
+                    location = 'index.html';
+                },
+                move(x, y) {
+                    let old = map.getCenter();
+                    map.panBy(x * 10, y * 10);
+                    let inside = true;
+
+                    for (let r of vm.rectangles) {
+                        if (r.bounds.contains(map.getCenter())) {
+                            inside = false;
+                        }
+                    }
+                    if (!inside) {
+                        map.panTo(old);
+                    }
+                    else {
+                        player.setPosition(map.getCenter());
+                    }
+
+                    update();
+
+                    let a = player.getPosition();
+                    let b = portal.getPosition();
+                    portal.$distance = gm.geometry.spherical.computeDistanceBetween(a, b);
+
+                    if (portal.$distance < 10) {
+                        info.open(map, portal);
+                    }
+                    else {
+                        info.close();
+                    }
+
+                    let c = door.getPosition();
+                    door.$distance = gm.geometry.spherical.computeDistanceBetween(a, c);
+
+                    if (door.$distance < 10) {
+                        setTimeout(() => {
+                            alert("Congratulation to found the door! Now you will be redirect to next stage.");
+                            location = 'stage3.html';
+                        }, 0)
+                    }
+                }
+            },
+            mounted() {
+                $(document).on('keydown', e => {
+                    if (vm.ready) {
+                        switch (e.keyCode) {
+                            case 37: vm.move(-1, 0); break;
+                            case 38: vm.move(0, -1); break;
+                            case 39: vm.move(+1, 0); break;
+                            case 40: vm.move(0, +1); break;
+                        }
+                    }
+                });
+            },
+            created() {
+                ref.once('value', snap => {
+                    if (snap.val()) {
+                        let can = initialize(snap.val());
+                        if (can != 1) {
+                            vm.ready = true;
+                            vm.move(0, 0);
+                        }
+                        else {
+                            alert('Another map will be loaded!');
+                            location = location;
+                        }
+                    }
+                    else {
+                        alert('No maze inside the database');
+                    }
+                });
+            }
+        });
+
+        // Google Maps --------------------------------------------------------
+        const gm = google.maps;
+
+        const map = new gm.Map(document.getElementById('map'), {
+            zoom: 18,
+            disableDefaultUI: true,
+            disableDoubleClickZoom: true,
+            clickableIcons: false,
+            gestureHandling: 'none',
+            mapTypeId: gm.MapTypeId.HYBRID
+        });
+
+        const player = new gm.Marker({
+            map,
+            icon: 'images/player.gif',
+            animation: gm.Animation.DROP
+        });
+
+        const portal = new gm.Marker({
+            map,
+            icon: {
+                url: 'images/items/portal.gif',
+                scaledSize: new gm.Size(60, 60)
+            },
+            animation: gm.Animation.DROP,
+            $distance: 0
+        });
+
+        const door = new gm.Marker({
+            map,
+            icon: {
+                url: 'images/door.gif',
+                scaledSize: new gm.Size(80, 80)
+            },
+            animation: gm.Animation.DROP,
+            $distance: 0
+        });
+
+        const info = new gm.InfoWindow({
+            content: document.getElementById('info'),
+        });
+
+        const circle = new gm.Circle({
+            map,
+            strokeWeight: 2,
+            strokeOpacity: 0.1,
+            fillColor: 'white',
+            fillOpacity: 0
+        });
+
+        function addRectangle(key, val) {
+            let o = new gm.Rectangle({
+                map,
+                bounds: val,
+                strokeColor: 'black',
+                fillColor: 'black',
+                $key: key,
+            });
+
+            vm.rectangles.push(o);
+        }
+
+        function initialize(val) {
+            let value = Object.entries(val);
+            let maze = (value.splice(Math.floor(Math.random() * value.length), 1));
+            let exitList = maze[0][1].exit;
+
+            if (Object.keys(exitList).length < 2) {
+                alert("Maze have not enough pointer! At least 2 pointer");
+                return 1;
+            }
+
+            exitList = Object.entries(exitList);
+
+            ref.child(maze[0][0] + '/bounds').on('child_added', snap => {
+                addRectangle(snap.key, snap.val());
+            });
+            vm.maze = maze[0][0];
+            let pPosition = (exitList.splice(exitList[0], 1)[0])[1];
+            map.setCenter(pPosition);
+            player.setPosition(pPosition);
+            portal.setPosition({ lat: pPosition.lat - 0.00008, lng: pPosition.lng + 0.0003 });
+
+            let position = (exitList.splice(Math.floor(Math.random() * exitList.length), 1)[0])[1];
+            door.setPosition(position);
+
+            for (let i = 1; i <= 25; i++) {
+                setTimeout(() => {
+                    $('.dismissButton').click()
+                }, 100*i);
+            }
+        }
+
+        function update() {
+            circle.setCenter(player ? player.getPosition() : null);
+            circle.setRadius(120);
+
+            door.setVisible(false);
+
+            if (player == null) return;
+
+            let p1 = player.getPosition();
+            let p2 = door.getPosition();
+            let distance = gm.geometry.spherical.computeDistanceBetween(p1, p2);
+
+            if (distance <= circle.getRadius()) {
+                door.setVisible(true);
+            }
+        }
+    </script>
+</body>
+
+</html>

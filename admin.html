@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="images/favicon.png">
+    <link rel="stylesheet" href="css/app.css">
+    <title>Create Maze</title>
+
+    <style>
+        main {
+            display: flex;
+            flex-direction: row;
+        }
+
+        #panel {
+            width: 200px;
+            margin-right: 10px;
+        }
+
+        #map {
+            border: 2px solid #999;
+            flex: 1 1 auto;
+        }
+
+        .item {
+            border: 1px solid #666;
+            padding: 2px 4px;
+            margin-bottom: 1px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .item:hover {
+            background-color: #ccc;
+        }
+
+        .item img {
+            position: absolute;
+            right: 4px;
+            top: calc(50% - 8px);
+            display: none;
+        }
+
+        .item:hover img {
+            display: block;
+        }
+
+        .label {
+            display: inline-block;
+            font-weight: bold;
+            background-color: #666;
+            color: #fff;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1><a href="admin.html">Create Maze</a></h1>
+    </header>
+
+    <!-- Vue ----------------------------------------------------------------->
+    <main id="app" v-cloak>
+        <div id="panel">
+            <button class="create" @click.prevent="createMaze" style="width: 100%">Create new maze</button>
+
+            <hr>
+
+            <div>
+                <img :src="`images/1/${ mazeChoosen || 'none' }.gif`" style="width:200px;height:200px;">
+            </div>
+            <hr>
+
+            <div>
+                <div class="item" v-for="m of mazes" @click="mazeLoad(m[0])">
+                    <span>
+                        {{ m[0] }}
+                    </span>
+                    <img src="images/remove.png" @click.stop="remove(m[0])">
+                </div>
+            </div>
+        </div>
+
+        <div id="map"></div>
+    </main>
+
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA6_FR24eJgBV5H-LPLMleoVG2d5wn0ut4&libraries=drawing"></script>
+    <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-database.js"></script>
+    <script src="js/jquery-3.4.1.slim.js"></script>
+    <script src="js/vue.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // Firebase -----------------------------------------------------------
+        firebase.initializeApp({
+            databaseURL: 'https://chuap1.firebaseio.com'
+        });
+
+        const ref = firebase.database().ref('map2');
+
+        // Vue ----------------------------------------------------------------
+        const vm = new Vue({
+            el: '#app',
+            data: {
+                rectangles: [],
+                markers: [],
+                mazes: [],
+                mazeChoosen: ''
+            },
+            methods: {
+                remove(m) {
+                    ref.child(m).remove();
+                    if (vm.mazeChoosen == m) {
+                        vm.mazeChoosen = '';
+                    }
+                },
+                mazeLoad(m) {
+                    map.panTo(center);
+                    vm.rectangles.forEach(j => j.setMap(null));
+                    vm.markers.forEach(j => j.setMap(null));
+                    vm.mazeChoosen = m;
+                    vm.rectangles = [];
+                    vm.markers = [];
+
+                    ref.child(m + '/bounds').on('child_added', snap => {
+                        addRectangle(snap.key, snap.val());
+                    });
+
+                    ref.child(m + '/exit').on('child_added', snap => {
+                        addMarker(snap.key, snap.val());
+                    });
+
+                    ref.child(m + '/bounds').on('child_removed', snap => {
+                        let o = vm.rectangles.find(o => o.$key == snap.key);
+                        if (o) {
+                            o.setMap(null);
+                        }
+                        let i = vm.rectangles.indexOf(o);
+                        vm.rectangles.splice(i, 1);
+                    });
+
+                    ref.child(m + '/exit').on('child_removed', snap => {
+                        let o = vm.markers.find(o => o.$key == snap.key);
+                        if (o) {
+                            o.setMap(null);
+                        }
+                        let i = vm.markers.indexOf(o);
+                        vm.markers.splice(i, 1);
+                    });
+                },
+                createMaze() {
+                    let k = vm.mazes[vm.mazes.length - 1];
+                    let m = 'maze' + (vm.mazes.length + 1);
+                    let i = 2;
+                    while (true) {
+                        if (m == k[0]) {
+                            m = 'maze' + (vm.mazes.length + i);
+                            i++;
+                        }
+                        else {
+                            break;
+                        }
+                    }
+                    vm.mazeChoosen = m;
+                    vm.mazeLoad(m);
+                }
+            },
+            created() {
+                ref.on('value', snap => {
+                    if (snap.val()) {
+                        maze(Object.entries(snap.val()));
+                        
+                    }
+                    else {
+                        $('.create').attr("disabled", true);
+                        alert('Fail to load the database!');
+                    }
+                    $('.dismissButton').click();
+                });
+            }
+        });
+
+        function maze(val) {
+            vm.mazes = [];
+            for (let m of val) {
+                vm.mazes.push(m);
+            }
+        }
+
+        // Google Maps --------------------------------------------------------
+        const gm = google.maps;
+        const center = { lat: 3.984493, lng: 102.285883 };
+
+        const map = new gm.Map(document.getElementById('map'), {
+            center,
+            zoom: 15,
+            disableDefaultUI: true,
+            disableDoubleClickZoom: true,
+            clickableIcons: false,
+        });
+
+        const mgr = new gm.drawing.DrawingManager({
+            map,
+            drawingControlOptions: {
+                drawingModes: ['rectangle'],
+                position: gm.ControlPosition.TOP_RIGHT
+            }
+        });
+
+        mgr.addListener('rectanglecomplete', o => {
+            o.setMap(null);
+            if (vm.mazeChoosen != '') {
+                ref.child(vm.mazeChoosen + '/bounds').push(
+                    o.getBounds().toJSON()
+                );
+            }
+        });
+
+        map.addListener('dblclick', e => {
+            if (vm.mazeChoosen != '') {
+                ref.child(vm.mazeChoosen + '/exit').push({
+                    lat: e.latLng.lat(),
+                    lng: e.latLng.lng()
+                });
+            }
+        });
+
+        const arr = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'];
+
+        function addMarker(key, position) {
+            let label = arr.shift();
+            arr.push(label);
+
+            let m = new gm.Marker({
+                position,
+                map,
+                animation: gm.Animation.DROP,
+                draggable: false,
+                $key: key
+            });
+
+            m.addListener('dblclick', e => {
+                ref.child(vm.mazeChoosen + '/exit/' + m.$key).remove();
+            });
+
+            vm.markers.push(m);
+        }
+
+        function addRectangle(key, val) {
+            let o = new gm.Rectangle({
+                map,
+                bounds: val,
+                strokeColor: 'black',
+                fillColor: 'black',
+                $key: key
+            });
+
+            o.addListener('click', e => {
+                vm.rectangles.forEach(o => o.setEditable(false));
+                o.setEditable(true);
+                vm.color = o.strokeColor;
+            });
+
+            o.addListener('bounds_changed', e => {
+                ref.child(vm.mazeChoosen + '/bounds/' + o.$key).update(
+                    o.getBounds()
+                );
+            });
+
+            o.addListener('dblclick', e => {
+                ref.child(vm.mazeChoosen + '/bounds/' + o.$key).remove();
+            });
+
+            vm.rectangles.push(o);
+        }
+        map.addListener('click', e => {
+            vm.rectangles.forEach(o => o.setEditable(false));
+            vm.color = '#ff0000';
+        });
+    </script>
+</body>
+
+</html>

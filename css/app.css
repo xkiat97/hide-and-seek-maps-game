@@ -1,0 +1,185 @@
+/***** Font *****/
+body, input, select, textarea, button {
+    font: 11pt Calibri;
+}
+
+/***** Layout *****/
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    padding: 10px 20px;
+    background-color: #ccc;
+    flex: 0 0 auto;
+}
+
+header h1 {
+    margin: 0;
+    padding-left: 40px;
+    background: url(../images/favicon.png) no-repeat left center;
+}
+
+header a {
+    text-decoration: none;
+    color: inherit;
+}
+
+nav {
+    padding: 0 20px;
+    background-color: #666;
+    display: flex;
+    flex: 0 0 auto;
+}
+
+nav a, nav div {
+    text-decoration: none;
+    color: #fff;
+    display: block;
+    padding: 5px 10px;
+    white-space: nowrap;
+}
+
+nav a:hover {
+    background-color: #333;
+}
+
+main {
+    padding: 10px 20px;
+    flex: 1 1 auto;
+    overflow-x: hidden;
+}
+
+main h1 {
+    margin: 0;
+    margin-bottom: 20px;
+}
+
+/***** Table *****/
+.table {
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    border: 1px solid #999;
+    padding: 5px;
+}
+
+.table th {
+    background-color: #666;
+    color: #fff;
+    user-select: none;
+    cursor: pointer;
+}
+
+.table tr:hover td {
+    background-color: #ccc;
+}
+
+.table th.asc::after {
+    content: ' ▴';
+}
+
+.table th.desc::after {
+    content: ' ▾';
+}
+
+/***** Cloak *****/
+[v-cloak] {
+    display: none;
+}
+
+/***** Transition: fade *****/
+.fade-enter-active,
+.fade-leave-active,
+.fade-move {
+    transition: 0.25s;
+}
+
+.fade-enter,
+.fade-leave-to {
+    opacity: 0;
+}
+
+/***** Transition: slide *****/
+.slide-enter-active,
+.slide-leave-active,
+.slide-move {
+    transition: 0.25s;
+}
+
+.slide-enter {
+    opacity: 0;
+    transform: translate(100px, 0);
+}
+
+.slide-leave-to {
+    opacity: 0;
+    transform: translate(-100px, 0);
+}
+
+/***** Transition: rotate *****/
+.rotate-enter-active,
+.rotate-leave-active {
+    transition: 0.25s;
+}
+
+.rotate-enter,
+.rotate-leave-to {
+    opacity: 0;
+    transform: rotate(3turn) scale(0.5);
+}
+
+/***** Transition: slide-left *****/
+.slide-left-enter-active,
+.slide-left-leave-active {
+    transition: 0.25s;
+}
+
+.slide-left-enter {
+    opacity: 0;
+    transform: translate(100px, 0);
+}
+
+.slide-left-leave-to {
+    opacity: 0;
+    transform: translate(-100px, 0);
+}
+
+/***** Transition: slide-right *****/
+.slide-right-enter-active,
+.slide-right-leave-active {
+    transition: 0.25s;
+}
+
+.slide-right-enter {
+    opacity: 0;
+    transform: translate(-100px, 0);
+}
+
+.slide-right-leave-to {
+    opacity: 0;
+    transform: translate(100px, 0);
+}
+
+/***** Form *****/
+form > div {
+    margin-bottom: 5px;
+}
+
+form > div > label {
+    display: inline-block;
+    background-color: #ccc;
+    padding: 3px 6px;
+    width: 50px;
+}
+
+label > input {
+    vertical-align: text-top;
+}
+
+/***** Others *****/

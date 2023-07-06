@@ -1,0 +1,543 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="images/favicon.png">
+    <link rel="stylesheet" href="css/app.css">
+    <title>Stage 1: Material Finding</title>
+    <style>
+        main {
+            display: flex;
+            flex-direction: row;
+        }
+
+        #map {
+            border: 1px solid #333;
+            flex: 1 1 auto;
+        }
+
+        #bag {
+            font: 11pt calibri;
+            width: 200px;
+            margin: 5px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            background-color: #fff;
+            height: calc(100% - 50px);
+            overflow-y: scroll;
+        }
+
+        #bag h1 {
+            background-color: lightgrey;
+            text-align: center;
+            font-size: 22px;
+            font-weight: normal;
+        }
+
+        .item {
+            border: 1px solid #ccc;
+            padding: 2px 4px;
+            margin-bottom: 1px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .item>* {
+            vertical-align: middle;
+        }
+
+        .item img {
+            width: 25px;
+            height: 25px;
+            border: 1px solid #999;
+            border-radius: 2px;
+        }
+
+        .item input {
+            position: absolute;
+            right: 4px;
+            top: calc(50% - 8px);
+            display: none;
+        }
+
+        .item:hover input {
+            display: block;
+        }
+
+        .item:hover {
+            background-color: #eee;
+        }
+
+        #panel {
+            background-color: #fff;
+            border: 1px solid #999;
+            border-radius: 5px;
+            margin: 5px;
+            padding: 5px;
+            font: 11pt calibri;
+        }
+
+        #panel img {
+            width: 16px;
+        }
+
+        #panel * {
+            vertical-align: middle;
+        }
+
+        #portal {
+            background-color: #fff;
+            border: 1px solid #999;
+            border-radius: 5px;
+            margin: 5px;
+            padding: 5px;
+            font: 11pt calibri;
+        }
+
+        #portal img {
+            width: 16px;
+        }
+
+        #portal * {
+            vertical-align: middle;
+        }
+
+        #info {
+            width: 120px;
+        }
+
+        #info img {
+            border: 1px solid #333;
+            width: 50px;
+            height: 50px;
+        }
+
+        .gm-style-iw {
+            text-align: center;
+        }
+
+        .gm-style-iw>button {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1><a href="stage1.html">Stage 1: Material Finding (Find more relevant items go to jungle)</a></h1>
+    </header>
+
+    <!-- Vue ----------------------------------------------------------------->
+    <main id="app" v-cloak>
+        <div>
+            <div id="bag">
+                <div style="margin-bottom: 10px; text-align: center">
+                    Visible area:
+                    <select v-model.number="radius" class="radius">
+                        <option>100</option>
+                        <option>120</option>
+                        <option>140</option>
+                        <option>160</option>
+                        <option>180</option>
+                        <option>200</option>
+                    </select>
+                    meters
+                </div>
+                <h1>Bag Capacity</h1>
+                <p style="margin-top: -15px">Current empty slot: {{ (capacity == 0) ? 'Full' : capacity }}</p>
+                <div class="item" v-for="m of markers" v-if="m.$found">
+                    <img :src="m.icon.url">
+                    <span>{{ m.icon.url.split(/[\/.]/)[2] }}</span>
+                    <input type="image" src="images/remove.png" @click.stop="remove(m)">
+                </div>
+            </div>
+        </div>
+
+        <div id="map" style="position: relative"></div>
+
+        <div hidden>
+            <div id="panel">
+                <div v-for="m of markers" v-if="!m.$found">
+                    <img :src="m.icon.url">
+                    <span>{{ m.$distance | number(0) }} meters</span>
+                </div>
+            </div>
+        </div>
+
+        <div hidden>
+            <div id="portal">
+                <div v-for="m of portal">
+                    <img :src="m.icon.url">
+                    <span>{{ m.$distance | number(0) }} meters</span>
+                </div>
+            </div>
+        </div>
+
+        <div hidden>
+            <div id="info">
+                <div>
+                    <p id="label" style="word-wrap: break-word;"> {{ label[0] }}</p>
+                    <img :src="label[1]">
+                </div>
+                <div>
+                    <button @click.prevent="collect">Collect</button>
+                    <button @click.prevent="cancel">Ignore</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-database.js"></script>
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA6_FR24eJgBV5H-LPLMleoVG2d5wn0ut4&libraries=geometry"></script>
+    <script src="js/jquery-3.4.1.slim.js"></script>
+    <script src="js/vue.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // Firebase -----------------------------------------------------------
+        firebase.initializeApp({
+            databaseURL: 'https://chuap1.firebaseio.com'
+        });
+
+        const ref = firebase.database().ref('map1');
+        const bagCapacity = 3;
+
+        // Vue ----------------------------------------------------------------
+        const vm = new Vue({
+            el: '#app',
+            data: {
+                markers: [],
+                randRelItems: [],
+                randIrrelItems: [],
+                capacity: bagCapacity,
+                ready: false,
+                foundAll: false,
+                portal: [], // reason of open portal using array is "map can have multiple portal"
+                label: [],
+                direction: false,
+                radius: 100
+            },
+            watch: {
+                radius() {
+                    update();
+                }
+            },
+            methods: {
+                cancel() {
+                    vm.move(0, 0);
+                    info.close();
+                },
+                collect() {
+                    for (let m of vm.markers.filter(m => !m.$found)) {
+                        let a = player.getPosition();
+                        let b = m.getPosition();
+                        m.$distance = gm.geometry.spherical.computeDistanceBetween(a, b);
+
+                        if (m.$distance < 10) {
+                            if (vm.capacity != 0) {
+                                m.$found = true;
+                                m.setVisible(false);
+                                vm.capacity--;
+                            }
+                            else {
+                                alert("Your bag is full! Now you can go to the portal.");
+                                break;
+                            }
+                        }
+                        if (vm.capacity == 0 && m.$distance < 10) {
+                            openPortal();
+                            vm.foundAll = true;
+                            vm.direction = true;
+                        }
+                    }
+                    vm.cancel();
+                },
+                move(x, y) {
+                    let old = map.getCenter();
+                    map.panBy(x * 10, y * 10);
+
+                    if (bounds.contains(map.getCenter())) {
+                        player.setPosition(map.getCenter());
+                    }
+                    else {
+                        map.panTo(old);
+                    }
+                    update();
+
+                    // Update marker's distance and visibility
+                    for (let m of vm.markers.filter(m => !m.$found)) {
+                        let a = player.getPosition();
+                        let b = m.getPosition();
+                        m.$distance = gm.geometry.spherical.computeDistanceBetween(a, b);
+
+                        if (m.$distance < 10) {
+                            info.open(map, m);
+                        }
+                    }
+
+                    // Update portal's distance and visibility
+                    for (let m of vm.portal.filter(m => !m.$found)) {
+                        let a = player.getPosition();
+                        let b = m.getPosition();
+                        m.$distance = gm.geometry.spherical.computeDistanceBetween(a, b);
+                        if (vm.direction) {
+                            line.setPath([a, b]);
+                        }
+                        else {
+                            line.setPath([]);
+                        }
+                        let containItem = true;
+                        if (m.$distance < 10) {
+                            if (vm.capacity == 0) {
+                                for (let m of vm.markers.filter(m => m.$found)) {
+
+                                    if (!vm.randRelItems.some(row => row.includes(m.icon.url.split(/[\/.]/)[2]))) {
+                                        containItem = false;
+                                    }
+                                }
+                                if (containItem) {
+                                    alert('You Win! Now you will be redirect to next stage.');
+                                    location = "stage2.html";
+                                }
+                                else {
+                                    alert('You have pick some irrelevant items! Please think properly before pick the item.');
+                                }
+                            }
+                            else {
+                                alert("You didn't collect enough items! Please collect complete first.");
+                            }
+                        }
+                    }
+                },
+                remove(m) {
+                    m.$found = false;
+                    m.setVisible(true);
+                    vm.capacity++;
+                    vm.direction = false;
+                    vm.move(0, 0);
+                }
+            },
+            mounted() {
+                $(document).on('keydown', e => {
+                    if (vm.ready) {
+                        switch (e.keyCode) {
+                            case 37: vm.move(-1, 0); break;
+                            case 38: vm.move(0, -1); break;
+                            case 39: vm.move(+1, 0); break;
+                            case 40: vm.move(0, +1); break;
+                            case 27: vm.cancel(); break;
+                            case 13: vm.collect(); break;
+                            case 32: vm.collect(); break;
+                        }
+                    }
+                });
+            },
+            created() {
+                ref.once('value', snap => {
+                    let relevant = snap.child('releventItem').val();
+                    let irrelevant = snap.child('irreleventItem').val();
+                    if (relevant && irrelevant) {
+                        let relItems = Object.entries(relevant);
+                        let irrelItems = Object.entries(irrelevant);
+                        if (relItems.length >= 4 && irrelItems.length >= 6) {
+                            const panel = document.getElementById('panel');
+                            map.controls[gm.ControlPosition.TOP_LEFT].push(panel);
+
+                            generateRandomItems(relItems, vm.randRelItems, 4);
+                            generateRandomItems(irrelItems, vm.randIrrelItems, 6);
+
+                            let itemsArr = shuffleItems(vm.randRelItems, vm.randIrrelItems);
+
+                            let sp = bounds.toSpan();
+
+                            for (let img of itemsArr) {
+                                let p = {
+                                    lat: sw.lat() + sp.lat() * Math.random(),
+                                    lng: sw.lng() + sp.lng() * Math.random()
+                                };
+                                let m = addMarker(p, img[0], '.png');
+                                vm.markers.push(m);
+                            }
+                            vm.move(0, 0);
+                            vm.ready = true;
+                        }
+                        else {
+                            alert('No have enough items to play the games!');
+                        }
+                    }
+                    else {
+                        alert('Only relevant or irrelevant exist but not both!');
+                    }
+                    $('.dismissButton').click();
+                });
+            }
+        });
+
+        // Google Maps --------------------------------------------------------
+        const gm = google.maps;
+        const center = new gm.LatLng(3.215000, 101.730000);
+
+        const map = new gm.Map(document.getElementById('map'), {
+            center,
+            zoom: 18,
+            disableDefaultUI: true,
+            clickableIcons: false,
+            gestureHandling: 'none'
+        });
+
+        const line = new gm.Polyline({
+            map,
+            icons: [{
+                icon: {
+                    path: 'M 0,-1 0,1',
+                    strokeOpacity: 1,
+                    scale: 4
+                },
+                offset: '0',
+                repeat: '20px'
+            }],
+            strokeColor: 'red',
+            strokeWeight: 0,
+            strokeOpacity: 0.5,
+            geodesic: true
+        });
+
+        const circle = new gm.Circle({
+            map,
+            strokeWeight: 2,
+            strokeOpacity: 0.1,
+            fillColor: 'white',
+            fillOpacity: 0
+        });
+
+        const player = new gm.Marker({
+            position: center,
+            map,
+            icon: 'images/player.gif',
+            animation: gm.Animation.DROP
+        });
+
+        const info = new gm.InfoWindow({
+            content: document.getElementById('info'),
+        });
+
+        // get the item's detail
+        info.addListener('domready', e => {
+            let i = info.getAnchor();
+            for (let z of vm.markers.filter(m => i == m)) {
+                for (let x of vm.randIrrelItems) {
+                    if (z.icon.url.split(/[\/.]/)[2] == x[0]) {
+                        vm.label = [x[1], z.icon.url];
+                        break;
+                    }
+                }
+                for (let x of vm.randRelItems) {
+                    if (z.icon.url.split(/[\/.]/)[2] == x[0]) {
+                        vm.label = [x[1], z.icon.url];
+                        break;
+                    }
+                }
+            }
+        });
+
+        const sw = gm.geometry.spherical.computeOffset(center, 2000, 225);
+        const ne = gm.geometry.spherical.computeOffset(center, 2000, 45);
+        const bounds = new gm.LatLngBounds(sw, ne);
+        const rect = new gm.Rectangle({
+            map,
+            bounds,
+            strokeColor: 'red',
+            fillOpacity: 0
+        });
+
+        function addMarker(position, image, type) {
+            let t = (type == '.gif') ? 60 : 32;
+
+            let icon = {
+                url: `images/items/${image + type}`, // url
+                scaledSize: new gm.Size(t, t) // scaled size
+            };
+
+            let m = new gm.Marker({
+                map,
+                position,
+                icon: icon,
+                $distance: 0, // Custom property
+                $found: false // Custom property
+            });
+
+            return m;
+        }
+
+        // randomly picked the number of items
+        function generateRandomItems(from, to, quantity) {
+            do {
+                to.push(from.splice(
+                    Math.floor(Math.random() * from.length)
+                    , 1)[0]);
+            } while (to.length < quantity);
+        }
+
+        function shuffleItems(rItems, irItems) {
+            let itemsArr = rItems.concat(irItems);
+            itemsArr.sort(function () { return 0.5 - Math.random() });
+            return itemsArr;
+        }
+
+        // Open portal to go to next stage. Serve as a door
+        function openPortal() {
+            if (!vm.foundAll) {
+                const portal = document.getElementById('portal');
+                map.controls[gm.ControlPosition.TOP_RIGHT].push(portal);
+                if (vm.capacity == 0) {
+                    vm.direction = true;
+                    setTimeout(() => {
+                        alert("Your bag is full! Now you can go to the portal.");
+                    }, 500);
+                    
+                    let sp = bounds.toSpan(); // width and height
+
+                    let p = {
+                        lat: sw.lat() + sp.lat() * Math.random(),
+                        lng: sw.lng() + sp.lng() * Math.random()
+                    };
+                    let m = addMarker(p, 'portal', '.gif');
+                    vm.portal.push(m);
+                    vm.foundAll = true;
+                    vm.move(0, 0);
+                }
+            }
+        }
+
+        function update() {
+            circle.setCenter(player ? player.getPosition() : null);
+            circle.setRadius(vm.radius);
+
+            vm.markers.forEach(m => m.setVisible(false));
+            if (player == null) return;
+
+            for (let m of vm.markers.filter(m => !m.$found)) {
+                let p1 = player.getPosition();
+                let p2 = m.getPosition();
+                let distance = gm.geometry.spherical.computeDistanceBetween(p1, p2);
+
+                if (distance <= circle.getRadius()) {
+                    m.setVisible(true);
+                }
+                else {
+                    info.close();
+                }
+            }
+        }
+
+        $('.radius').keydown(e => {
+            e.preventDefault();
+        });
+    </script>
+</body>
+</html>

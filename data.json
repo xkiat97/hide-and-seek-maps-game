@@ -1,0 +1,349 @@
+{
+  "map1": {
+    "irreleventItem": {
+      "Umbrella": "Used as protection against rain or sometimes sun",
+      "book": "Used to improved knowledge",
+      "hairDryer": "Used to dry hair",
+      "helmet": "Used to protect our head",
+      "laptop": "Used to entertainment, work and so on",
+      "mp3Player": "Used to listen the songs",
+      "pet": "Used to accompany feeder",
+      "pillow": "Used to sleep comfortably",
+      "pingpong": "Used for sports",
+      "riceCooker": "Used to cook the rice"
+    },
+    "releventItem": {
+      "compass": "Used to identify the direction",
+      "cutter": "Used to remove something such as branch",
+      "drink": "To maintain our life",
+      "food": "To restore physical strength",
+      "medicalSpray": "Used to prevent insects",
+      "touchlight": "Able to view the surrounding at night"
+    }
+  },
+  "map3": {
+    "items": {
+      "item1": {
+        "desc": "It can bring you to forward.",
+        "img": "images/item1",
+        "name": "Blink Dagger"
+      },
+      "item2": {
+        "desc": "It is a ticket to bring you back origin.",
+        "img": "images/item2",
+        "name": "Fly Paper"
+      },
+      "item3": {
+        "desc": "Hide all the Roshan monster for 5 seconds",
+        "img": "images/item3",
+        "name": "Invisible Knife"
+      },
+      "item4": {
+        "desc": "You become not killable for 7 seconds",
+        "img": "images/item4",
+        "name": "Black King Bar"
+      },
+      "item5": {
+        "desc": "Destroy current Roshan monsters",
+        "img": "images/item5",
+        "name": "Gold knife"
+      },
+      "item6": {
+        "desc": "Reheal all the lifes you loss.",
+        "img": "images/item6",
+        "name": "Heart"
+      }
+    }
+  },
+  "map4": {
+    "ITM": {
+      "desc": "DESCRIPTION",
+      "img": "images/player.gif",
+      "lat": 34.801406,
+      "lng": 135.440627,
+      "name": "Osaka International Airport",
+      "player": "KIAT",
+      "realImg": "images/suzy.jpg"
+    },
+    "KIA": {
+      "desc": "DESCRIPTION",
+      "img": "images/player.gif",
+      "lat": 34.445671,
+      "lng": 135.230536,
+      "name": "Kansai International Airport",
+      "player": "Kelvin",
+      "realImg": "images/jay.jpg"
+    },
+    "KLIA": {
+      "desc": "DESCRIPTION",
+      "img": "images/player.gif",
+      "lat": 2.745703,
+      "lng": 101.707289,
+      "name": "Kuala Lumpur International Airport",
+      "player": "TOM",
+      "realImg": "images/tang.jpg"
+    }
+  },
+  "map2": {
+    "maze1": {
+      "bounds": {
+        "-LnDeSBGSLMAorx5xaHs": {
+          "east": 102.27281529095461,
+          "north": 3.9940506562568103,
+          "south": 3.9750209012001245,
+          "west": 102.27238613751223
+        },
+        "-LnDeW20UOAfYl7xlzgZ": {
+          "east": 102.29740343627032,
+          "north": 3.9940493229382925,
+          "south": 3.9750212356697143,
+          "west": 102.29692298558052
+        },
+        "-LnDeo-O4bXZ2G_UidFA": {
+          "east": 102.29740321959457,
+          "north": 3.9795360737306393,
+          "south": 3.9790647461076767,
+          "west": 102.29398340310058
+        },
+        "-LnDetSu7v5taWgEfBxs": {
+          "east": 102.29740321959457,
+          "north": 3.9840779469443235,
+          "south": 3.983563773633116,
+          "west": 102.27465540493927
+        },
+        "-LnDfIfH_mj7ycU008L3": {
+          "east": 102.29140848244634,
+          "north": 3.9815070777966173,
+          "south": 3.975020960407511,
+          "west": 102.29089349831548
+        },
+        "-LnDfKtlsP2dmWATluIc": {
+          "east": 102.29509920205084,
+          "north": 3.9815070777966173,
+          "south": 3.981078598975572,
+          "west": 102.29089349831548
+        },
+        "-LnDfV1GZ_h3-ipqPFUe": {
+          "east": 102.2941550644776,
+          "north": 3.9778221540591647,
+          "south": 3.9773508256454138,
+          "west": 102.28312582100835
+        },
+        "-LnDfYzOeD4QdUCo2hEK": {
+          "east": 102.28780359353033,
+          "north": 3.984075268958985,
+          "south": 3.979107594082396,
+          "west": 102.28724569405523
+        },
+        "-LnDfd6duEpSEEZnGmVV": {
+          "east": 102.28780359353033,
+          "north": 3.9797074655396103,
+          "south": 3.979107594082396,
+          "west": 102.28509992684332
+        },
+        "-LnDfgbP_1ofBQ3iZs9m": {
+          "east": 102.28364080513921,
+          "north": 3.9814642299226066,
+          "south": 3.9773508256454138,
+          "west": 102.28312582100835
+        },
+        "-LnDfmjWoAdOvqZ7TEhL": {
+          "east": 102.28561491097418,
+          "north": 3.9814642299226066,
+          "south": 3.9809929031897786,
+          "west": 102.27664560402837
+        },
+        "-LnDfspef21dNUJMAINS": {
+          "east": 102.28147358025512,
+          "north": 3.979707465539623,
+          "south": 3.975021292624619,
+          "west": 102.28080839241943
+        },
+        "-LnDfzQH8vOubmmKMn7Z": {
+          "east": 102.27716058815923,
+          "north": 3.9814642299226315,
+          "south": 3.979150442055309,
+          "west": 102.27664560402837
+        },
+        "-LnDg0ldi45UGAy17RCu": {
+          "east": 102.27716058815923,
+          "north": 3.979578921685576,
+          "south": 3.979150442055309,
+          "west": 102.27462858284918
+        },
+        "-LnDg2NHA4WzMs2tPDWT": {
+          "east": 102.27501482094726,
+          "north": 3.979578917174955,
+          "south": 3.977147297399579,
+          "west": 102.27462858284912
+        },
+        "-LnDg4YXMh3Hq_VV79X8": {
+          "east": 102.27913469399414,
+          "north": 3.9776936099678744,
+          "south": 3.97714595050952,
+          "west": 102.27462992395363
+        },
+        "-LnDg8_lN5E5CHoAdT5q": {
+          "east": 102.27520793999639,
+          "north": 3.988148476504234,
+          "south": 3.9813356862897864,
+          "west": 102.2746500405213
+        },
+        "-LnDgE_X0CmfccbLYO3b": {
+          "east": 102.28143066491094,
+          "north": 3.986263180624117,
+          "south": 3.983563773633116,
+          "west": 102.2808298500916
+        },
+        "-LnDgFpXqgBHsI8ECZUH": {
+          "east": 102.28143066491094,
+          "north": 3.986263180624117,
+          "south": 3.985749008415035,
+          "west": 102.27864116753545
+        },
+        "-LnDgIGm2NcFO9s1IsiW": {
+          "east": 102.27816909874878,
+          "north": 3.9881484765042217,
+          "south": 3.987677152861328,
+          "west": 102.27465004052124
+        },
+        "-LnDgcJHAUhsAARhbp7_": {
+          "east": 102.27816909874883,
+          "north": 3.990162311430265,
+          "south": 3.987677152861328,
+          "west": 102.27752536858526
+        },
+        "-LnDgf3ubPNABS1dyrBg": {
+          "east": 102.28559345330206,
+          "north": 3.990162311430265,
+          "south": 3.9896481411895266,
+          "west": 102.27752536858526
+        },
+        "-LnDgjptX40KPvdMMoAk": {
+          "east": 102.28567928399053,
+          "north": 3.986220332949934,
+          "south": 3.983563773633116,
+          "west": 102.28499263848272
+        },
+        "-LnDgnjd7wkDfsi3fexN": {
+          "east": 102.285593453302,
+          "north": 3.9923903817347184,
+          "south": 3.9877628480853216,
+          "west": 102.28494972313842
+        },
+        "-LnDguD9hHVi7GZy_ogT": {
+          "east": 102.28833735312429,
+          "north": 3.9882281462462355,
+          "south": 3.9877628480853216,
+          "west": 102.27979988182989
+        },
+        "-LnDgzYmLIjhln1e07QA": {
+          "east": 102.2835764321228,
+          "north": 3.988227780696922,
+          "south": 3.9851062927889145,
+          "west": 102.28293270195923
+        },
+        "-LnDh3YGw0V9i8s6bZRf": {
+          "east": 102.28833668257198,
+          "north": 3.988228815739778,
+          "south": 3.9855347744361276,
+          "west": 102.28773922051391
+        },
+        "-LnDh5xlBhiqMhxoQnCC": {
+          "east": 102.2920307549378,
+          "north": 3.9860917899165975,
+          "south": 3.985534769918019,
+          "west": 102.28773922051397
+        },
+        "-LnDhPrYlTa9GQHTqZqI": {
+          "east": 102.27520659889188,
+          "north": 3.990076616408161,
+          "south": 3.9896909887195036,
+          "west": 102.27238625611272
+        },
+        "-LnDhV2mQNlDoKKSWChi": {
+          "east": 102.27520793999639,
+          "north": 3.9923903794713556,
+          "south": 3.9896909887195036,
+          "west": 102.27460712517706
+        },
+        "-LnDh_6mVKg4ZN1gS66F": {
+          "east": 102.28267520989385,
+          "north": 3.9923903794713933,
+          "south": 3.9918762103564958,
+          "west": 102.27460712517706
+        },
+        "-LnDhf3eRIvWboQx3S-7": {
+          "east": 102.2911295327088,
+          "north": 3.992390379471381,
+          "south": 3.9917905154787503,
+          "west": 102.28494972313848
+        },
+        "-LnDhjFmlKY1oGMtKwbF": {
+          "east": 102.29443401421508,
+          "north": 3.994049379880158,
+          "south": 3.9896481411895266,
+          "west": 102.29370445336303
+        },
+        "-LnDhlNHDMuDECF1A2wb": {
+          "east": 102.29443401421514,
+          "north": 3.9902908539498663,
+          "south": 3.9896481411895266,
+          "west": 102.28773922051397
+        },
+        "-LnDhnC9HrTkPtIU5t2J": {
+          "east": 102.29144603337255,
+          "north": 3.9902908539498663,
+          "south": 3.987880679006585,
+          "west": 102.2909149559876
+        },
+        "-LnDhpe1577yxIAPTJIS": {
+          "east": 102.29443401421508,
+          "north": 3.9883627144516254,
+          "south": 3.987880679006585,
+          "west": 102.2909156265398
+        },
+        "-LnDhr19S5m__hVuq9w3": {
+          "east": 102.29443401421514,
+          "north": 3.9883627144516254,
+          "south": 3.9854490745066022,
+          "west": 102.29379028405157
+        },
+        "-LnGZar3CIW2fIWwZJR8": {
+          "east": 102.29740310099419,
+          "north": 3.9940506562569884,
+          "south": 3.993584691268269,
+          "west": 102.27238613751229
+        },
+        "-LnGiiOzntx2yKBECXzA": {
+          "east": 102.2974032191446,
+          "north": 3.9755645600439453,
+          "south": 3.9750212565639353,
+          "west": 102.2723862556627
+        }
+      },
+      "exit": {
+        "-LnIYPOqNSwm7k5JNo6o": {
+          "lat": 3.9908076887057247,
+          "lng": 102.27373795758058
+        },
+        "-LnIYQ1h7-wqCq5HFhWG": {
+          "lat": 3.992477327097955,
+          "lng": 102.29571061383058
+        },
+        "-LnIYQl_nDk1XCj9NYy3": {
+          "lat": 3.984814087036842,
+          "lng": 102.27974610577394
+        },
+        "-LnIYRghFjDpLv2JY-GJ": {
+          "lat": 3.9763373472692205,
+          "lng": 102.28940205822755
+        },
+        "-LnImym9zyE2NhCKafEC": {
+          "lat": 3.978167128096011,
+          "lng": 102.27600044365363
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,616 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="images/favicon.png">
+    <link rel="stylesheet" href="css/app.css">
+    <title>Stage 3: Water War</title>
+    <style>
+        main {
+            display: flex;
+            flex-direction: row;
+        }
+
+        #legend {
+            font: 11pt calibri;
+            width: 200px;
+            margin: 5px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            background-color: #fff;
+            height: calc(100% - 50px);
+            overflow-y: scroll;
+        }
+
+        #legend h1 {
+            background-color: lightgrey;
+            text-align: center;
+            font-size: 22px;
+            font-weight: normal;
+        }
+
+        #map {
+            border: 1px solid #333;
+            flex: 1 1 auto;
+        }
+
+        .panel {
+            background-color: #fff;
+            border: 1px solid #999;
+            border-radius: 5px;
+            margin: 5px;
+            padding: 5px;
+            font: 11pt calibri;
+        }
+
+        .panel img {
+            width: 16px;
+        }
+
+        .panel * {
+            vertical-align: middle;
+        }
+
+        .noUsed {
+            border: 3px solid green;
+            padding: 3px;
+        }
+
+        .used {
+            border: 3px solid red;
+            opacity: 0.5;
+            padding: 3px;
+        }
+
+        /* progress bar */
+
+        .progress {
+            position: absolute;
+            height: 160px;
+            width: 160px;
+            cursor: pointer;
+            top: -100px;
+            left: 10px;
+            margin: -80px 0 0 -80px;
+        }
+
+        .progress-circle {
+            transform: rotate(-90deg);
+            margin-top: -40px;
+        }
+
+        .progress-circle-back {
+            fill: none;
+            stroke: #D2D2D2;
+            stroke-width: 10px;
+        }
+
+        .progress-circle-prog {
+            fill: none;
+            stroke: #7E3451;
+            stroke-width: 10px;
+            stroke-dasharray: 0 999;
+            stroke-dashoffset: 0px;
+            transition: stroke-dasharray 0.7s linear 0s;
+        }
+
+        .progress-text {
+            width: 100%;
+            position: absolute;
+            top: 60px;
+            text-align: center;
+            font-size: 2em;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1><a href="stage3.html">Stage 3: Water War (Do not touch the Roshan)</a></h1>
+    </header>
+
+    <!-- Vue ----------------------------------------------------------------->
+    <main id="app" v-cloak>
+        <div>
+            <div id="legend">
+                <h1>Item Legend</h1>
+                <div>
+                    <h3 style="text-align: center;">{{itemLName}}</h3>
+                    <img :src="itemLImg + '.png'" style="height: 100%; width:100%;">
+                    <p style="text-align: justify;">{{itemLDesc}}</p>
+                </div>
+            </div>
+        </div>
+        <div id="map" style="position: relative"></div>
+
+        <div hidden>
+            <div id="panel" class="panel">
+                <div v-for="m of lifes">
+                    <span v-if="m.death"><img src="images/heart-black.png"> Deaded</span>
+                    <span v-else><img :src="m.image"> Alive</span>
+                </div>
+            </div>
+        </div>
+
+        <div hidden>
+            <div id="itemPanel" class="panel">
+                <div v-for="m of items" style="display: inline-block; cursor: pointer;"
+                    :class="m.used ? 'used' : 'noUsed'">
+                    <div @click.prevent="activeItem(m.name)" @mouseover.stop="hoverItem(m.name)"
+                        @mouseleave.stop="hoverItem()">
+                        <b>{{items.indexOf(m) + 1}} </b> <img :src="m.image">
+                        <span v-if="m.used">Used </span>
+                        <span v-else>Active </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div hidden>
+            <div id="itemDistance" class="panel">
+                <div v-for="m of markers.filter(x => x.$type=='item')">
+                    <img :src="m.icon.url">
+                    <span v-if="m.$found">Picked</span>
+                    <span v-else>{{ m.$distance | number(0) }} meters</span>
+                </div>
+            </div>
+        </div>
+
+        <div hidden>
+            <div id="warProgress" class="" style="position: relative;">
+                <div class="progress">
+                    <svg class="progress-circle" width="200px" height="200px" xmlns="http://www.w3.org/2000/svg">
+                        <circle class="progress-circle-back" cx="80" cy="80" r="74"></circle>
+                        <circle class="progress-circle-prog" cx="80" cy="80" r="74"></circle>
+                    </svg>
+                    <div class="progress-text" data-progress="0">0%</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-database.js"></script>
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA6_FR24eJgBV5H-LPLMleoVG2d5wn0ut4&libraries=geometry"></script>
+    <script src="js/jquery-3.4.1.slim.js"></script>
+    <script src="js/vue.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // Firebase -----------------------------------------------------------
+        firebase.initializeApp({
+            databaseURL: 'https://chuap1.firebaseio.com'
+        });
+
+        // firebase refence
+        const ref = firebase.database().ref('map3');
+
+        // Vue ----------------------------------------------------------------
+        const vm = new Vue({
+            el: '#app',
+            data: {
+                gameStarted: false,
+                dotaItems: [],
+                itemLName: '',
+                itemLImg: '',
+                itemLDesc: '',
+                lifes: [],
+                items: [],
+                markers: [],
+                adjustedBoatLat: -0.00,
+                adjustedBoatLng: -0.1,
+                boomLat: 0.05,
+                boomLng: 0.50,
+                panByX: 30,
+                panByY: 5,
+                playerNoDamage: false,
+                runningTask: true
+            },
+            methods: {
+                gameStart() {
+                    //vm.getAllItems();
+                    if(this.runningTask){
+                        setInterval(() => { vm.move(1, 0) }, 100);
+                        setInterval(() => {
+                            if(this.runningTask){
+                                generateBoom();
+                                checkUpgrade();
+                            }
+                        }, 1000);
+                        $('.dismissButton').click();
+                    }
+                },
+                // define the boat moving
+                move(x, y) {
+                    // Pan the map (move the player)
+                    // Prevent moving out of bounds
+                    let old = map.getCenter();
+                    let boatPosition = new gm.LatLng({
+                        lat: map.getCenter().lat() + this.adjustedBoatLat,
+                        lng: map.getCenter().lng() + this.adjustedBoatLng
+                    });
+                    map.panBy(x * this.panByX, y * this.panByY);
+
+                    if (bounds.contains(map.getCenter())) {
+                        // inside
+                        player.setPosition(boatPosition);
+                        // Check marker's distance and visibility
+                        for (let m of this.markers.filter(m => !m.$found)) {
+                            let a = player.getPosition();
+                            let b = m.getPosition();
+                            m.$distance = gm.geometry.spherical.computeDistanceBetween(a, b);
+
+                            if (m.$distance < 1000) {
+                                m.$found = true;
+                                m.setVisible(false);
+
+                                //check the type of marker that touched
+                                if (m.$type == 'life') {
+                                    let life = {
+                                        image: m.icon.url,
+                                        death: false
+                                    };
+                                    this.lifes.push(life);
+                                } else if (m.$type == 'item') {
+                                    let i = {
+                                        name: m.$name,
+                                        image: m.icon.url,
+                                        used: false
+                                    };
+                                    this.items.push(i);
+                                } else if (!this.playerNoDamage) {
+                                    this.lifes.filter(x => !x.death)[0].death = true;
+                                }
+                            }
+                        }
+                        // if the lifes all is death, then end the game
+                        if (this.lifes.every(m => m.death) && this.gameStarted) {
+                            setTimeout(() => {
+                                alert('You are death, Mission Failed!!!');
+                                location = location;
+                            }, 0)
+                        }
+                    }
+                    else {
+                        // Outside
+                        map.panTo(old);
+                    }
+                },
+                //when user mouseover or mouseleave event handling
+                hoverItem(itemName = null) {
+                    //console.log(this.dotaItems);
+                    if (this.dotaItems && itemName) {
+                        let dItem = this.dotaItems.find(x => x.id == itemName);
+                        this.itemLName = dItem.name;
+                        this.itemLImg = dItem.img;
+                        this.itemLDesc = dItem.desc;
+                    }
+                    else {
+                        //default description
+                        this.itemLName = 'Roshan';
+                        this.itemLImg = 'images/roshan';
+                        this.itemLDesc = 'Roshan is a evil that you cannot touch its body, if not you will die. Be careful on it, good luck!';
+                    }
+                },
+                //set all the marker with type boom to found and invisible
+                clearAllBooms() {
+                    //clear all the boom is a list
+                    this.markers.filter(y => y.$type == 'boom' && !y.$found).forEach(x => {
+                        x.setVisible(false);
+                        x.$found = true;
+                    });
+                },
+                //set all the marker with type boom to invisible
+                hideAllBooms() {
+                    this.markers.filter(y => y.$type == 'boom' && !y.$found).forEach(x => {
+                        x.setVisible(false);
+                        setTimeout(() => {
+                            x.setVisible(true);
+                        }, 5000);
+                    });
+                },
+                //protect player from reduce the life
+                playerProtection() {
+                    this.playerNoDamage = true;
+                    setTimeout(() => {
+                        this.playerNoDamage = false;
+                    }, 7000);
+                },
+                // set all the lifes to not death
+                rehealingLife() {
+                    this.lifes.forEach(x => x.death = false);
+                },
+                //initial all the items to the player, for testing purpose
+                getAllItems() {
+                    let itms = ['item1', 'item2', 'item3', 'item4', 'item5', 'item6'];
+                    itms.forEach(x => {
+                        let i = {
+                            name: x,
+                            image: 'images/' + x + '.png',
+                            used: false
+                        };
+                        this.items.push(i);
+                    });
+                },
+                //given an item name, then perform the effect
+                activeItem(item) {
+                    let itemUsable = vm.items.find(x => x.name == item).used;
+                    if (!itemUsable) {
+                        switch (item) {
+                            case 'item1':
+                                // blink to 
+                                vm.move(300, 0);
+                                vm.move(200, 0);
+                                vm.move(100, 0);
+                                vm.move(50, 0);
+                                vm.move(30, 0);
+                                vm.move(10, 0);
+                                break;
+                            case 'item2':
+                                //fly back
+                                map.panTo(center);
+                                let boatPosition = new gm.LatLng({
+                                    lat: map.getCenter().lat() + this.adjustedBoatLat,
+                                    lng: map.getCenter().lng() + this.adjustedBoatLng
+                                });
+                                player.setPosition(boatPosition);
+                                break;
+                            case 'item3':
+                                //visible
+                                vm.hideAllBooms();
+                                break;
+                            case 'item4':
+                                //bkb
+                                vm.playerProtection();
+                                break;
+                            case 'item5':
+                                //gold
+                                vm.clearAllBooms();
+                                break;
+                            case 'item6':
+                                //heart
+                                vm.rehealingLife();
+                                break;
+                            default: break;
+                        }
+                        //after use the item then change the used state
+                        itemUsable = vm.items.find(x => x.name == item).used = true;
+                    }
+                },
+                //check and update the percent from source to destination
+                //make up of level difficulty
+                updateProgress(percent) {
+                    var rand = percent;
+                    var x = document.querySelector('.progress-circle-prog');
+                    x.style.strokeDasharray = (rand * 4.65) + ' 999';
+                    var el = document.querySelector('.progress-text');
+                    var from = $('.progress-text').data('progress');
+                    $('.progress-text').data('progress', rand);
+                    var start = new Date().getTime();
+
+                    setTimeout(function () {
+                        var now = (new Date().getTime()) - start;
+                        var progress = now / 700;
+                        result = rand > from ? Math.floor((rand - from) * progress + from) : Math.floor(from - (from - rand) * progress);
+                        el.innerHTML = progress < 1 ? result + '%' : rand + '%';
+                        if (progress < 1) setTimeout(arguments.callee, 10);
+                    }, 10);
+                }
+
+            },
+
+            mounted() {
+                // Handle keydown event, call vm.move(x, y) accordingly
+                //          LEFT = 37, UP = 38, RIGHT = 39, DOWN = 40
+                $(document).on('keydown', e => {
+                    let keyCode = e.keyCode;
+                    if (this.gameStarted) {
+                        switch (keyCode) {
+                            case 37: case 65: vm.move(-1, 0); break;
+                            case 38: case 87: vm.move(0, -1); break;
+                            case 39: case 68: vm.move(+1, 0); break;
+                            case 40: case 83: vm.move(0, +1); break;
+                            //number pad key
+                            case 49:
+                            case 50:
+                            case 51:
+                            case 52:
+                            case 53:
+                            case 54:
+
+                            case 55:
+                            case 56:
+                            case 57:
+                            case 58:
+                                vm.activeItem(this.items[keyCode - 49].name); break;
+                        }
+                    }else if(keyCode === 32 || keyCode === 13){
+                        this.gameStarted = true;
+                        this.gameStart();
+                    }
+                });
+
+            }, created() {
+                ref.once('value', snap => {
+                    let obj = snap.child('items').val();
+                    for (let [key, value] of Object.entries(obj)) {
+                        let t = {
+                            id: key,
+                            name: value.name,
+                            img: value.img,
+                            desc: value.desc
+                        };
+                        this.dotaItems.push(t);
+                    };
+                });
+            }
+        });
+
+        // Google Maps --------------------------------------------------------
+        const gm = google.maps;
+
+        //const center = new gm.LatLng(3.215000,101.730000);
+        const center = new gm.LatLng(5.793344, 102.615921);
+        const restrictArea = new gm.LatLng(5.8, 109.35555);
+
+        const boat = {
+            url: 'images/boat.png',
+            origin: new gm.Point(0, -100),
+            scaledSize: new gm.Size(700, 250)
+        };
+
+        const map = new gm.Map(document.getElementById('map'), {
+            center,
+            zoom: 12,
+            disableDefaultUI: true,
+            clickableIcons: false,
+            //Disable gesture handling (zoom, pan, etc)
+            gestureHandling: 'none',
+            mapTypeId: gm.MapTypeId.ROADMAP,
+
+        });
+
+        //panel for display life
+        const panel = document.getElementById('panel');
+        map.controls[gm.ControlPosition.TOP_LEFT].push(panel);
+
+        //panel for item receive
+        const itemPanel = document.getElementById('itemPanel');
+        map.controls[gm.ControlPosition.BOTTOM_CENTER].push(itemPanel);
+
+        //panel for item distance
+        const itemDistance = document.getElementById('itemDistance');
+        map.controls[gm.ControlPosition.TOP_RIGHT].push(itemDistance);
+
+        //panel for item distance
+        const warProgress = document.getElementById('warProgress');
+        map.controls[gm.ControlPosition.BOTTOM_LEFT].push(warProgress);
+
+        var player = new gm.Marker({
+            position: center,
+            map,
+            icon: boat,
+            animation: gm.Animation.DROP
+        });
+
+        // Calculate bounds, draw rectangle
+        // Position used must be LatLng object
+        const sw = gm.geometry.spherical.computeOffset(restrictArea, 750000, 268);
+        const ne = gm.geometry.spherical.computeOffset(restrictArea, 750000, 88);
+        const bounds = new gm.LatLngBounds(sw, ne);
+        const rect = new gm.Rectangle({
+            map,
+            bounds,
+            strokeColor: 'red',
+            fillOpacity: 0
+        });
+
+        gm.event.addListenerOnce(map, 'bounds_changed', e => {
+            //initial life for the player
+            let nOfLIfe = 3;
+            for (let i = 1; i <= nOfLIfe; i++) {
+                let life = {
+                    image: 'images/heart-red.png',
+                    death: false
+                }
+                //push life to the arr
+                vm.lifes.push(life);
+            }
+
+            //randomly generate life in google map
+            let images = ['orange', 'yellow', 'green', 'blue', 'purple'];
+            let itms = ['item1', 'item2', 'item3', 'item4', 'item5', 'item6'];
+            let sp = bounds.toSpan(); // width and height
+
+            //push item into map
+            itms.forEach(x => {
+                let i = {
+                    lat: sw.lat() + sp.lat() * Math.random(),
+                    lng: sw.lng() + sp.lng() * Math.random()
+                }
+                addMarker(i, x, x + '.png', 'item');
+            });
+
+            //push images to map
+            for (let img of images) {
+                let p = {
+                    lat: sw.lat() + sp.lat() * Math.random(),
+                    lng: sw.lng() + sp.lng() * Math.random()
+                };
+                addMarker(p, img, 'heart-' + img + '.png', 'life');
+            }
+            vm.hoverItem();
+            vm.move(0, 0);
+        });
+
+        function generateBoom() {
+            let max = map.getCenter().lat() + vm.adjustedBoatLat - vm.boomLat;
+            let min = map.getCenter().lat() + vm.adjustedBoatLat + vm.boomLat;
+            let sp = bounds.toSpan(); // width and height
+            let name = 'roshan';
+            let boomPosition = new google.maps.LatLng({
+                lat: (Math.random() * (max - min)) + min,
+                lng: map.getCenter().lng() + vm.adjustedBoatLng + vm.boomLng
+            });
+            addMarker(boomPosition, name, name + '.png', 'boom');
+        }
+
+        function addMarker(position, name, image, type, found = false) {
+            const item = {
+                url: `images/${image}`,
+                origin: new gm.Point(0, 0),
+                scaledSize: new gm.Size(30, 30)
+            };
+            let m = new gm.Marker({
+                map,
+                position,
+                icon: item,
+                scaledSize: new gm.Size(50, 50),
+                $name: name,
+                $distance: 0,
+                $found: found,
+                $type: type
+            });
+            vm.markers.push(m);
+        }
+
+        //upgrade the difficulty when player reach certain level
+        function checkUpgrade() {
+            let dist = ne.lng() - sw.lng();
+            let distPass = player.getPosition().lng() - sw.lng();
+            let percent = Math.round((distPass * 100 / dist), 2);
+
+            vm.updateProgress(percent);
+            //when reach the percent of completion, 
+            //set boom distance for lng and lat
+            //set the speed of boat
+            if (percent > 75) {
+                vm.boomLat = 0.03;
+                vm.boomLng = 0.25;
+                vm.panByX = 50;
+            } else if (percent > 50) {
+                vm.boomLat = 0.05;
+                vm.boomLng = 0.30;
+                vm.panByX = 40;
+            } else if (percent > 25) {
+                vm.boomLat = 0.05;
+                vm.boomLng = 0.40;
+                vm.panByX = 35;
+            }
+
+            if (player.getPosition().lng() > Math.floor(ne.lng())) {
+                setTimeout(() => {
+                    this.runningTask = false;;
+                    alert('Mission Complete!!!');
+                    location = 'stage4.html';
+                }, 0);
+            }
+        }
+    </script>
+</body>
+
+</html>

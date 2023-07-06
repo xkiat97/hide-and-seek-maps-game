@@ -1,0 +1,381 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="images/favicon.png">
+    <link rel="stylesheet" href="css/app.css">
+    <title>Stage 4: Save the World</title>
+    <style>
+        main {
+            display: flex;
+            flex-direction: row;
+        }
+
+        #legend {
+            font: 11pt calibri;
+            width: 220px;
+            margin: 5px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            background-color: #fff;
+            overflow-y: scroll;
+        }
+
+        #legend h1 {
+            background-color: lightgrey;
+            text-align: center;
+            font-size: 22px;
+            font-weight: normal;
+        }
+
+        #map {
+            border: 1px solid #333;
+            flex: 1 1 auto;
+        }
+
+        .panel {
+            background-color: #fff;
+            border: 1px solid #999;
+            border-radius: 5px;
+            margin: 5px;
+            padding: 5px;
+            font: 11pt calibri;
+        }
+
+        .panel img {
+            width: 16px;
+        }
+
+        .panel * {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1><a href="stage4.html">Stage 4: Save the World (Fetch person to correct destination)</a></h1>
+    </header>
+
+    <!-- Vue ----------------------------------------------------------------->
+    <main id="app" v-cloak>
+        <div>
+            <div id="legend" style="height: 35%">
+                <h1>Legend</h1>
+                <div>
+                    <h3 style="margin-bottom: 0;">Pick/Drop people</h3>
+                    <img src="images/s.jpg" style="width: 200px">
+                    <h3 style="vertical-align: middle"><img src="images/ac.jpg"> Increase height</h3>
+                    <h3 style="vertical-align: middle"><img src="images/de.jpg"> Decrease height</h3>
+                    <h3 style="vertical-align: middle"><img src="images/acC.jpg"> Acceleration</h3>
+                    <h3 style="vertical-align: middle"><img src="images/deC.jpg"> Deceleration</h3>
+                </div>
+            </div>
+            <div id="legend" style="height: 55%">
+                    <h1>Your missions</h1>
+                    <div>
+                        <h3 style="text-align: center;">{{pickedPlayer? pickedPlayer.$name : instruction.name}}</h3>
+                        <img :src="pickedPlayer? pickedPlayer.$real : instruction.img" style="height: 100%; width:100%;">
+                        <b>{{pickedPlayer? "I want to go " + pickedPlayer.$destName : ""}}</b>
+                        <p style="text-align: justify;">{{pickedPlayer? pickedPlayer.$desc : instruction.desc}}</p>
+                    </div>
+                </div>
+        </div>
+        <div id="map"></div>
+
+        <div hidden>
+            <div id="panel" class="panel">
+                <div v-for="m of human">
+                    <img :src="m.icon">
+                    <span v-if="m.$picked">Saved</span>
+                    <span v-else>{{ (m.$distance/1000) | number(0) }} KMs</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-database.js"></script>
+
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA6_FR24eJgBV5H-LPLMleoVG2d5wn0ut4&libraries=geometry"></script>
+    <script src="js/jquery-3.4.1.slim.js"></script>
+    <script src="js/vue.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // Firebase -----------------------------------------------------------
+        firebase.initializeApp({
+            databaseURL: 'https://chuap1.firebaseio.com'
+        });
+
+        // firebase refence
+        const ref = firebase.database().ref('map4');
+        // Vue ----------------------------------------------------------------
+        const vm = new Vue({
+            el: '#app',
+            data: {
+                saveZones: [],
+                human: [],
+                airportZone: [],
+                pickedPlayer: null,
+                instruction:{
+                    name: 'INSTRUCTION',
+                    img: 'images/playerWalkingB.gif',
+                    desc: `Take you flight and go to save people that round the map. 
+                    You can only bring one person at the same time and send to correct destination. 
+                    Green color bounds are their destination, if you put outside the bounds they will die.
+                    Once you conplete all the missions, you have to go back your starting airport. 
+                    After that, all the result will be release. Good luck!`
+                }
+            },
+            methods: {
+                initialZone() {
+                    for (let zone of this.saveZones) {
+                        //generate airport zone
+                        let center = new gm.LatLng(zone.lat, zone.lng);
+                        let sw = gm.geometry.spherical.computeOffset(center, 100, 225);
+                        let ne = gm.geometry.spherical.computeOffset(center, 100, 45);
+                        let saveZoneBounds = new gm.LatLngBounds(sw, ne);
+                        let newZone = new gm.Rectangle({
+                            map,
+                            bounds: saveZoneBounds,
+                            strokeColor: 'green',
+                            fillOpacity: 0,
+                            $country: zone.id
+                        });
+                        this.airportZone.push(newZone);
+
+                        //generate player info
+                        //randomly set player
+                        let sp = bounds.toSpan();
+                        let p = {
+                            lat: swLatLng.lat() + sp.lat() * Math.random(),
+                            lng: swLatLng.lng() + sp.lng() * Math.random()
+                        };
+                        let m = new gm.Marker({
+                            map,
+                            position: p,
+                            icon: zone.img,
+                            $name: zone.player,
+                            $real: zone.real,
+                            $country: zone.id,
+                            $destName: zone.name,
+                            $desc: zone.desc,
+                            $distance: 0,
+                            $picked: false,
+                            $death: false,
+                            $correct: false
+                        });
+                        console.log(zone.name);
+                        this.human.push(m);
+                    }
+                },
+                move(x, y) {
+                    let old = map.getCenter();
+                    map.panBy(x * 30, y * 30);
+                    if (bounds.contains(map.getCenter())) {
+                        //inside
+                        player.setPosition(map.getCenter());
+                    } else {
+                        map.panTo(old);
+                    }
+
+                    // Update marker's distance and visibility
+                    for (let m of vm.human.filter(m => !m.$picked)) {
+                        let a = player.getPosition();
+                        let b = m.getPosition();
+                        m.$distance = gm.geometry.spherical.computeDistanceBetween(a, b);
+
+                        if (m.$distance < 50 && !m.$picked && !this.pickedPlayer) {
+                            this.pickedPlayer = m;
+                            m.$picked = true;
+                            m.setVisible(false);
+                        }
+                    }
+                    if (vm.human.every(m => m.$picked) && myZoneBounds.contains(map.getCenter())) {
+                        setTimeout(() => {
+                            if(vm.human.every(m => m.$death)){
+                                alert('OMG, You kill all people! Mission failed!!!');
+                            }else if(vm.human.some(m => m.$death)){
+                                alert('Some people being killed by you, Mission failed!!!');
+                            }else if(vm.human.every(m => m.$correct)){
+                                alert('You are my hero, you saved everyone️ ❤️!!!');
+                            }else{
+                                alert('Your geography is quite weak, you can improve further ❤️!!!');
+                            }
+                            location = 'index.html';
+                        }, 0);
+                    }
+                },
+                acceleration() {
+                    for (let i = 1; i <= 7; i++) {
+                        setTimeout(() => {
+                            map.setZoom(map.zoom - 1);
+                        }, 555 * i);
+                    }
+
+                },
+                deceleration() {
+                    for (let i = 1; i <= 7; i++) {
+                        setTimeout(() => {
+                            map.setZoom(map.zoom + 1);
+                        }, 555 * i);
+                    }
+                },
+                dropPlayer() {
+                    //console.log(this.pickedPlayer);
+                    if (this.pickedPlayer) {
+                        //take the human info
+                        let savedHuman = this.human.find(x => x.$name == this.pickedPlayer.$name);
+                        let currentZone = null;
+                        //check whether the flight is in the bound
+                        for (let z of this.airportZone) {
+                            //take out the zone
+                            if (z.bounds.contains(map.getCenter())) {
+                                currentZone = z;
+                                break;
+                            }
+                        };
+                        //place the saved human into current location
+                        savedHuman.setPosition(map.getCenter());
+                        savedHuman.setVisible(true);
+                        if (currentZone) {
+                            if (savedHuman.$country == currentZone.$country) {
+                                //when the human country is correct
+                                savedHuman.$correct = true;
+                                savedHuman.icon = savedHuman.$real;
+                            }
+                        } else {
+                            //if the flight not drop in current bound
+                            //set human to death
+                            savedHuman.$death = true;
+                            savedHuman.icon = 'images/death.png';
+                        }
+                        //set empty seat
+                        this.pickedPlayer = null;
+                    }
+                }
+            },
+            mounted() {
+                $(document).on('keydown', e => {
+                    $('.dismissButton').click();
+                    switch (e.keyCode) {
+                        case 37: case 65:
+                            vm.move(-1, 0);
+                            player.icon.url = 'images/flightL.png';
+                            break;
+                        case 38: case 87:
+                            vm.move(0, -1);
+                            player.icon.url = 'images/flight.png';
+                            break;
+                        case 39: case 68:
+                            vm.move(+1, 0);
+                            player.icon.url = 'images/flightR.png';
+                            break;
+                        case 40: case 83:
+                            vm.move(0, +1);
+                            player.icon.url = 'images/flightB.png';
+                            break;
+                        case 188:
+                            map.setZoom(map.zoom - 1);
+                            break;
+                        case 190:
+                            map.setZoom(map.zoom + 1);
+                            break;
+                        case 219:
+                            vm.acceleration();
+                            break;
+                        case 221:
+                            vm.deceleration();
+                            break;
+                        case 32:
+                            vm.dropPlayer();
+                            break;
+
+                    }
+                });
+            }, created() {
+                ref.once('value', snap => {
+                    let obj = snap.val();
+                    for (let [key, value] of Object.entries(obj)) {
+                        let t = {
+                            id: key,
+                            name: value.name,
+                            desc: value.desc,
+                            player: value.player,
+                            img: value.img,
+                            real: value.realImg,
+                            lat: value.lat,
+                            lng: value.lng
+                        };
+                        this.saveZones.push(t);
+                    };
+                    //after retrieve all zone from db
+                    vm.initialZone();
+                    vm.acceleration();
+                });
+            }
+        });
+
+        // Google Maps --------------------------------------------------------
+        const gm = google.maps;
+
+        //set the center of the starting point in KK
+        const center = new gm.LatLng(5.923076, 116.051124 - 0.002);
+
+        const map = new gm.Map(document.getElementById('map'), {
+            center,
+            zoom: 18,
+            disableDefaultUI: true,
+            clickableIcons: false,
+            maxZoom: 18,
+            minZoom: 3,
+            strictBounds: true,
+            gestureHandling: 'none',
+            mapTypeId: gm.MapTypeId.HYBRID,
+
+        });
+
+        const panel = document.getElementById('panel');
+        map.controls[gm.ControlPosition.TOP_LEFT].push(panel);
+        var flight = {
+            url: 'images/flight.png',
+            origin: new gm.Point(0, 0),
+            scaledSize: new gm.Size(100, 100)
+        };
+        const player = new gm.Marker({
+            position: center,
+            map,
+            icon: flight,
+            animation: gm.Animation.DROP
+        });
+
+        // customer starting save zone
+        const mysw = gm.geometry.spherical.computeOffset(center, 100, 225);
+        const myne = gm.geometry.spherical.computeOffset(center, 100, 45);
+        const myZoneBounds = new gm.LatLngBounds(mysw, myne);
+        const myZone = new gm.Rectangle({
+            map,
+            bounds: myZoneBounds,
+            strokeColor: 'yellow',
+            fillOpacity: 0
+        });
+
+        //full map bounds
+        const swLatLng = new gm.LatLng(-85, -180);
+        const neLatLng = new gm.LatLng(85, 180);
+        const bounds = new gm.LatLngBounds(swLatLng, neLatLng);
+        const rect = new gm.Rectangle({
+            map,
+            bounds,
+            strokeColor: 'red',
+            fillOpacity: 0
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="images/favicon.png">
+    <link rel="stylesheet" href="css/app.css">
+    <title>Main Page</title>
+</head>
+
+<body>
+    <header>
+        <h1><a href="index.html">Training Games</a></h1>
+    </header>
+
+    <nav>
+        <a href="stage1.html">Start</a>
+        <a href="admin.html">Create a maze</a>
+    </nav>
+
+    <main id="app" v-cloak>
+        <button @click.prevent="load()">Load the database</button>
+    </main>
+</body>
+
+<script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-database.js"></script>
+<script src="js/jquery-3.4.1.slim.js"></script>
+<script src="js/vue.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+
+    // Firebase -----------------------------------------------------------
+    firebase.initializeApp({
+        databaseURL: 'https://chuap1.firebaseio.com'
+    });
+
+    const ref = firebase.database().ref();
+
+    // Vue ----------------------------------------------------------------
+    const vm = new Vue({
+        el: '#app',
+        data: {
+
+        },
+        methods: {
+            load() {
+                fetch('data.json')
+                    .then(resp => resp.json())
+                    .then(json => ref.set(json));
+            }
+        }
+    });
+
+</script>
+
+</html>
